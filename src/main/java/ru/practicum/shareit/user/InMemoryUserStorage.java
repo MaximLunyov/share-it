@@ -13,7 +13,7 @@ import java.util.*;
 public class InMemoryUserStorage implements UserStorage {
 
     private Map<Long, User> userMap = new HashMap<>();
-    private Map<Long ,String> emails = new HashMap<>();
+    private Map<Long, String> emails = new HashMap<>();
     protected long id = 0;
 
     @Override
