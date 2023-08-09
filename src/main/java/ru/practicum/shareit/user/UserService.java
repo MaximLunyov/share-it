@@ -3,8 +3,8 @@ package ru.practicum.shareit.user;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.user.dto.UserMapper;
 import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.dto.UserMapper;
 import ru.practicum.shareit.user.model.User;
 
 import java.util.List;
@@ -14,7 +14,6 @@ import java.util.List;
 @AllArgsConstructor
 public class UserService {
     private UserStorage userStorage;
-    private UserMapper userMapper;
 
     public List<User> findAllUsers() {
         return userStorage.findAllUsers();
@@ -25,11 +24,11 @@ public class UserService {
     }
 
     public User createUser(UserDto userDto) {
-        return userStorage.createUser(userMapper.toUser(userDto));
+        return userStorage.createUser(UserMapper.toUser(userDto));
     }
 
     public User updateUser(long id, UserDto userDto) {
-        return userStorage.updateUser(id, userMapper.toUser(userDto));
+        return userStorage.updateUser(id, UserMapper.toUser(userDto));
     }
 
     public void deleteUser(long id) {

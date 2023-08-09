@@ -12,9 +12,6 @@ import javax.validation.Valid;
 import javax.validation.ValidationException;
 import java.util.List;
 
-/**
- * TODO Sprint add-controllers.
- */
 @Slf4j
 @RestController
 @RequestMapping("/items")

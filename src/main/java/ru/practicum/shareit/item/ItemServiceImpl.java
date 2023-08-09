@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.user.UserService;
+import ru.practicum.shareit.user.UserStorage;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -17,19 +17,18 @@ import java.util.NoSuchElementException;
 public class ItemServiceImpl implements ItemService {
 
     private final ItemStorage itemStorage;
-    private final UserService userService;
-    private final ItemMapper itemMapper;
+    private final UserStorage userStorage;
 
     @Override
     public Item createItem(ItemDto itemDto, long sharerUserId) {
-        log.info(itemDto.toString());
-        if (userService.findUserById(sharerUserId) != null) {
-            Item item = itemMapper.toItem(itemDto);
-            item.setOwner(userService.findUserById(sharerUserId));
-            return itemStorage.createItem(item);
-        } else {
+        if (userStorage.findUserById(sharerUserId) == null) {
             throw new NoSuchElementException();
         }
+        Item item = ItemMapper.toItem(itemDto);
+        item.setOwner(userStorage.findUserById(sharerUserId));
+
+        return itemStorage.createItem(item);
+
     }
 
     @Override
@@ -37,9 +36,8 @@ public class ItemServiceImpl implements ItemService {
         checkUserExists(sharerUserId);
         if (findItemById(id, sharerUserId).getOwner().getId() != sharerUserId) {
             throw new NoSuchElementException();
-        } else {
-            return itemStorage.updateItem(id, itemMapper.toItem(itemDto));
         }
+        return itemStorage.updateItem(id, ItemMapper.toItem(itemDto));
     }
 
     @Override
@@ -66,7 +64,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     private void checkUserExists(long sharerUserId) {
-        if (userService.findUserById(sharerUserId) == null) {
+        if (userStorage.findUserById(sharerUserId) == null) {
             throw new NoSuchElementException();
         }
     }

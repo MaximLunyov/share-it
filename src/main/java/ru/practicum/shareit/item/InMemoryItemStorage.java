@@ -51,17 +51,9 @@ public class InMemoryItemStorage implements ItemStorage {
         return items;
     }
 
-
-//    Привет, Патимат!
-//    Возникла проблема с Postman тестом в данном методе.
-//    Тест требует объект, который не принадлежит пользователю X-Sharer-User-Id = 3,
-//    поэтому не проходит валидация в методе и я возвращаю код ошибки.
-//    Подскажи пожалуйста, это я не так понял смысл данного метода или это ошибка в тестах Postman?
     @Override
     public Item findItemById(long id, long sharerUserId) {
-
-        if (itemMap.containsKey(id) && itemMap.get(id).getOwner() != null
-                && itemMap.get(id).getOwner().getId() == sharerUserId) {
+        if (itemMap.containsKey(id) && itemMap.get(id).getOwner() != null) {
             return itemMap.get(id);
         } else {
             throw new NoSuchElementException();
