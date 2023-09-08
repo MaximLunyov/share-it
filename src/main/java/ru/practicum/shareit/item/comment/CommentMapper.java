@@ -4,7 +4,7 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class CommentMapper {
-    public CommentDto toCommentDto (Comment comment) {
+    public CommentDto toCommentDto(Comment comment) {
         CommentDto commentDto = new CommentDto();
         commentDto.setId(comment.getId());
         commentDto.setText(comment.getText());
@@ -14,7 +14,7 @@ public class CommentMapper {
         return commentDto;
     }
 
-    public Comment toComment (CommentDto commentDto) {
+    public Comment toComment(CommentDto commentDto) {
         Comment comment = new Comment();
         comment.setId(commentDto.getId());
         comment.setText(commentDto.getText());

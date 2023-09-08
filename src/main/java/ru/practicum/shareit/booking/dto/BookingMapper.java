@@ -26,7 +26,7 @@ public class BookingMapper {
         return booking;
     }
 
-    public BookingShortDto toBookingShortDto (Booking booking) {
+    public BookingShortDto toBookingShortDto(Booking booking) {
         return new BookingShortDto(booking.getId(), booking.getStart(), booking.getEnd(), booking.getItem(),
                 UserMapper.toUserDtoShort(booking.getBooker()), booking.getBooker().getId(), booking.getStatus());
     }

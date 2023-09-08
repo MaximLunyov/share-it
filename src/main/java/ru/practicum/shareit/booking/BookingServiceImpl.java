@@ -112,8 +112,8 @@ public class BookingServiceImpl implements BookingService {
             }
 
             case CURRENT: {
-                bookingShortDto = bookingRepository.findAllBookingsForBookerWithStartAndEndTime
-                        (userId, now).stream()
+                bookingShortDto = bookingRepository.findAllBookingsForBookerWithStartAndEndTime(userId, now)
+                        .stream()
                         .map(BookingMapper::toBookingShortDto)
                         .collect(Collectors.toList());
                 break;
@@ -176,15 +176,15 @@ public class BookingServiceImpl implements BookingService {
 
         switch (bookingState) {
             case ALL: {
-                bookingShortDto = bookingRepository.findAllByOwnerId
-                                (userId).stream()
+                bookingShortDto = bookingRepository.findAllByOwnerId(userId)
+                        .stream()
                         .map(BookingMapper::toBookingShortDto)
                         .collect(Collectors.toList());
                 break;
             }
             case CURRENT: {
-                bookingShortDto = bookingRepository.findAllByOwnerIdAndStartBeforeAndEndAfter
-                                (userId, now).stream()
+                bookingShortDto = bookingRepository.findAllByOwnerIdAndStartBeforeAndEndAfter(userId, now)
+                        .stream()
                         .map(BookingMapper::toBookingShortDto)
                         .collect(Collectors.toList());
                 break;

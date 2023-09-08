@@ -114,8 +114,8 @@ public class ItemServiceImpl implements ItemService {
         Item item = itemRepository.findById(id).get();
         ItemDto itemDto = ItemMapper.toItemDto(item);
         try {
-            List<BookingShortDto> bookingList = bookingRepository.findAllByOwnerId(sharerUserId).
-                    stream()
+            List<BookingShortDto> bookingList = bookingRepository.findAllByOwnerId(sharerUserId)
+                    .stream()
                     .map(BookingMapper::toBookingShortDto)
                     .collect(Collectors.toList());
             if (!bookingList.isEmpty()) {
