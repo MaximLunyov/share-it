@@ -1,10 +1,10 @@
 package ru.practicum.shareit.error;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import ru.practicum.shareit.error.model.ConflictException;
 import ru.practicum.shareit.error.model.ErrorResponse;
 
 import javax.validation.ValidationException;
@@ -16,7 +16,7 @@ public class ErrorHandler {
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleBadRequest(final ValidationException e) {
-        return new ErrorResponse("400 - Ошибка валидации");
+        return new ErrorResponse(e.getMessage());
     }
 
     @ExceptionHandler
@@ -26,10 +26,16 @@ public class ErrorHandler {
     }
 
     @ExceptionHandler
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public ErrorResponse handleConflict(final ConflictException e) {
-        return new ErrorResponse("409 - запрос не может быть выполнен из-за конфликтного обращения к ресурсу" + e.getMessage());
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleConflict(final MethodArgumentNotValidException e) {
+        return new ErrorResponse("400 - Ошибка валидации");
     }
+
+    /*@ExceptionHandler
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse validationConflict(final MethodArgumentNotValidException e) {
+        return new ErrorResponse("409 - Ошибка валидации " + e.getMessage()+ " |||| " + e.getClass());
+    }*/
 
     /*@ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)

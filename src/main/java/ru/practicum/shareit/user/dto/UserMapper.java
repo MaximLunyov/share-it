@@ -18,4 +18,8 @@ public class UserMapper {
         user.setEmail(userDto.getEmail());
         return user;
     }
+
+    public UserDtoShort toUserDtoShort(User user) {
+        return new UserDtoShort(user.getId());
+    }
 }
