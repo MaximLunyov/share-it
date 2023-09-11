@@ -165,8 +165,7 @@ public class ItemServiceImpl implements ItemService {
         ItemDto itemDto = ItemMapper.toItemDto(item);
         try {
             if (item.getUserId() == sharerUserId) {
-                itemDto.setLastBooking(bookingMapper.toBookingShortDto
-                        (bookingRepository.findFirstByItemIdAndEndBeforeOrderByEndDesc(id,
+                itemDto.setLastBooking(bookingMapper.toBookingShortDto(bookingRepository.findFirstByItemIdAndEndBeforeOrderByEndDesc(id,
                                 LocalDateTime.now())));
             } else {
                 itemDto.setLastBooking(null);
@@ -177,8 +176,7 @@ public class ItemServiceImpl implements ItemService {
 
         try {
             if (item.getUserId() == sharerUserId) {
-                itemDto.setNextBooking(bookingMapper.toBookingShortDto
-                        (bookingRepository.findFirstByItemIdAndStartAfterOrderByStartAsc(id,
+                itemDto.setNextBooking(bookingMapper.toBookingShortDto(bookingRepository.findFirstByItemIdAndStartAfterOrderByStartAsc(id,
                                 LocalDateTime.now())));
             } else {
                 itemDto.setLastBooking(null);
