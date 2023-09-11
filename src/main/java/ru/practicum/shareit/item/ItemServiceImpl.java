@@ -8,7 +8,6 @@ import ru.practicum.shareit.booking.Booking;
 import ru.practicum.shareit.booking.BookingRepository;
 import ru.practicum.shareit.booking.BookingStatus;
 import ru.practicum.shareit.booking.dto.BookingMapper;
-import ru.practicum.shareit.booking.dto.BookingShortDto;
 import ru.practicum.shareit.item.comment.Comment;
 import ru.practicum.shareit.item.comment.CommentDto;
 import ru.practicum.shareit.item.comment.CommentMapper;
@@ -29,12 +28,14 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @AllArgsConstructor
+@Transactional(readOnly = true)
 public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemRepository;
     private final UserService userService;
     private final BookingRepository bookingRepository;
     private final CommentRepository commentRepository;
+    private final BookingMapper bookingMapper;
 
     @Transactional
     @Override
@@ -89,7 +90,6 @@ public class ItemServiceImpl implements ItemService {
         return itemRepository.save(item);
     }
 
-    @Transactional(readOnly = true)
     @Override
     public List<ItemDto> findAllItems(long sharerUserId) {
         checkUserExists(sharerUserId);
@@ -99,7 +99,7 @@ public class ItemServiceImpl implements ItemService {
                 .collect(Collectors.toList());
         List<ItemDto> itemDto = new ArrayList<>();
         for (Long id : idList) {
-            itemDto.add(findItemDtoById(id, sharerUserId));
+            itemDto.add(addNextAndLastBookingsAndComments(id, sharerUserId));
         }
         return itemDto;
 
@@ -111,35 +111,10 @@ public class ItemServiceImpl implements ItemService {
         if (itemRepository.findById(id).isEmpty()) {
             throw new NoSuchElementException();
         }
-        Item item = itemRepository.findById(id).get();
-        ItemDto itemDto = ItemMapper.toItemDto(item);
-        try {
-            List<BookingShortDto> bookingList = bookingRepository.findAllByOwnerId(sharerUserId)
-                    .stream()
-                    .map(BookingMapper::toBookingShortDto)
-                    .collect(Collectors.toList());
-            if (!bookingList.isEmpty()) {
 
-                if (bookingList.size() > 1) { //1, 2
-                    itemDto.setNextBooking(bookingList.get(bookingList.size() - 2));
-                    itemDto.setLastBooking(bookingList.get(bookingList.size() - 1));
-                }
-            }
-        } catch (Error e) {
-            log.info("error 1");
-        }
-        try {
-            itemDto.setComments(commentRepository.findAllByItemId(id).stream()
-                    .map(CommentMapper::toCommentDto)
-                    .collect(Collectors.toList()));
-        } catch (Error e) {
-            log.info("error 2");
-        }
-
-        return itemDto;
+        return addNextAndLastBookingsAndComments(id, sharerUserId);
     }
 
-    @Transactional(readOnly = true)
     @Override
     public Item findItemById(long id, long sharerUserId) {
         checkUserExists(sharerUserId);
@@ -149,12 +124,6 @@ public class ItemServiceImpl implements ItemService {
         return itemRepository.findById(id).get();
     }
 
-    /*Привет, Патимат!
-    * Выполнил задание согласно ТЗ, но есть проблема с GET методом для получения Item с комментариями
-    * и next/last booking, комментарии добавляются, бронирования тоже, если я правильно понял логику задания.
-    * Но тесты Postman сыпятся на этих моментах, не понимаю что еще можно сделать, чтобы их пройти.
-    * Подскажи, пожалуйста, в чем мои ошибки, как их можно исправить?
-    * */
     @Transactional
     @Override
     public CommentDto createComment(Comment comment, long sharerUserId, long itemId) {
@@ -175,7 +144,6 @@ public class ItemServiceImpl implements ItemService {
 
     }
 
-    @Transactional(readOnly = true)
     @Override
     public List<Item> searchByText(String text, long sharerUserId) {
         checkUserExists(sharerUserId);
@@ -190,6 +158,44 @@ public class ItemServiceImpl implements ItemService {
         if (userService.findUserById(sharerUserId) == null) {
             throw new NoSuchElementException();
         }
+    }
+
+    private ItemDto addNextAndLastBookingsAndComments(Long id, Long sharerUserId) {
+        Item item = itemRepository.findById(id).get();
+        ItemDto itemDto = ItemMapper.toItemDto(item);
+        try {
+            if (item.getUserId() == sharerUserId) {
+                itemDto.setLastBooking(bookingMapper.toBookingShortDto
+                        (bookingRepository.findFirstByItemIdAndEndBeforeOrderByEndDesc(id,
+                                LocalDateTime.now())));
+            } else {
+                itemDto.setLastBooking(null);
+            }
+        } catch (NullPointerException e) {
+            itemDto.setLastBooking(null);
+        }
+
+        try {
+            if (item.getUserId() == sharerUserId) {
+                itemDto.setNextBooking(bookingMapper.toBookingShortDto
+                        (bookingRepository.findFirstByItemIdAndStartAfterOrderByStartAsc(id,
+                                LocalDateTime.now())));
+            } else {
+                itemDto.setLastBooking(null);
+            }
+        } catch (NullPointerException e) {
+            itemDto.setNextBooking(null);
+        }
+
+        try {
+            itemDto.setComments(commentRepository.findAllByItemId(id).stream()
+                    .map(CommentMapper::toCommentDto)
+                    .collect(Collectors.toList()));
+        } catch (Error e) {
+            log.info("error 2");
+        }
+
+        return itemDto;
     }
 
     private void checkUserMadeBooking(long userId, long itemId) {

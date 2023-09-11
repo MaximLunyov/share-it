@@ -22,33 +22,33 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @AllArgsConstructor
+@Transactional(readOnly = true)
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
     private final UserService userService;
     private final ItemService itemService;
+    private final BookingMapper bookingMapper;
 
     @Transactional
     @Override
-    public Booking createBooking(Long bookerId, BookingDto bookingDto) {
+    public BookingDto createBooking(Long bookerId, BookingDto bookingDto) {
         checkItemIsAvailable(bookingDto.getItemId(), bookerId);
         checkBookingTime(bookingDto);
-
         if (itemService.findItemById(bookingDto.getItemId(), bookerId).getUserId() == bookerId) {
             throw new NoSuchElementException("Владелец вещи не может бронировать свою вещь");
         }
-        Booking booking = new Booking();
-        booking.setStart(bookingDto.getStart());
-        booking.setEnd(bookingDto.getEnd());
-        booking.setItem(itemService.findItemById(bookingDto.getItemId(), bookerId));
-        booking.setBooker(userService.findUserById(bookerId));
-        booking.setStatus(BookingStatus.WAITING);
-        return bookingRepository.save(booking);
+
+        bookingDto.setUserId(bookerId);
+        Booking booking = bookingMapper.toBooking(bookingDto);
+
+        bookingRepository.save(booking);
+        return bookingMapper.toBookingDto(booking);
     }
 
     @Transactional
     @Override
-    public Booking updateBooking(Long ownerId, Long bookingId, Boolean approved) {
+    public BookingDto updateBooking(Long ownerId, Long bookingId, Boolean approved) {
         if (approved == null) {
             throw new ValidationException();
         }
@@ -69,24 +69,22 @@ public class BookingServiceImpl implements BookingService {
         } else {
             booking.setStatus(BookingStatus.REJECTED);
         }
-
-        return bookingRepository.save(booking);
+        bookingRepository.save(booking);
+        return bookingMapper.toBookingDto(booking);
     }
 
-    @Transactional
     @Override
     public BookingShortDto getById(Long userId, Long bookingId) {
         Booking booking = getBookingIfExists(bookingId);
         Long bookerId = booking.getBooker().getId();
         Long ownerId = booking.getItem().getUserId();
         if (bookerId.equals(userId) || ownerId.equals(userId)) {
-            return BookingMapper.toBookingShortDto(booking);
+            return bookingMapper.toBookingShortDto(booking);
         } else {
             throw new NoSuchElementException();
         }
     }
 
-    @Transactional
     @Override
     public List<BookingShortDto> getByUserId(Long userId, String state) {
         userService.findUserById(userId);
@@ -106,7 +104,7 @@ public class BookingServiceImpl implements BookingService {
             case ALL: {
                 bookingShortDto = bookingRepository.findAllBookingsByBooker(userId)
                         .stream()
-                        .map(BookingMapper::toBookingShortDto)
+                        .map(bookingMapper::toBookingShortDto)
                         .collect(Collectors.toList());
                 break;
             }
@@ -114,7 +112,7 @@ public class BookingServiceImpl implements BookingService {
             case CURRENT: {
                 bookingShortDto = bookingRepository.findAllBookingsForBookerWithStartAndEndTime(userId, now)
                         .stream()
-                        .map(BookingMapper::toBookingShortDto)
+                        .map(bookingMapper::toBookingShortDto)
                         .collect(Collectors.toList());
                 break;
             }
@@ -122,7 +120,7 @@ public class BookingServiceImpl implements BookingService {
             case PAST: {
                 bookingShortDto = bookingRepository.findAllByBookerIdAndEndBeforeOrderByStartDesc(userId, now)
                         .stream()
-                        .map(BookingMapper::toBookingShortDto)
+                        .map(bookingMapper::toBookingShortDto)
                         .collect(Collectors.toList());
                 break;
             }
@@ -130,7 +128,7 @@ public class BookingServiceImpl implements BookingService {
             case FUTURE: {
                 bookingShortDto = bookingRepository.findAllByBookerIdAndStartAfterOrderByStartDesc(userId, now)
                         .stream()
-                        .map(BookingMapper::toBookingShortDto)
+                        .map(bookingMapper::toBookingShortDto)
                         .collect(Collectors.toList());
                 break;
             }
@@ -138,7 +136,7 @@ public class BookingServiceImpl implements BookingService {
             case REJECTED: {
                 bookingShortDto = bookingRepository.findAllByBookerIdAndStatus(userId, BookingStatus.REJECTED)
                         .stream()
-                        .map(BookingMapper::toBookingShortDto)
+                        .map(bookingMapper::toBookingShortDto)
                         .collect(Collectors.toList());
                 break;
             }
@@ -146,7 +144,7 @@ public class BookingServiceImpl implements BookingService {
             case WAITING: {
                 bookingShortDto = bookingRepository.findAllByBookerIdAndStatus(userId, BookingStatus.WAITING)
                         .stream()
-                        .map(BookingMapper::toBookingShortDto)
+                        .map(bookingMapper::toBookingShortDto)
                         .collect(Collectors.toList());
                 break;
             }
@@ -158,7 +156,6 @@ public class BookingServiceImpl implements BookingService {
         return bookingShortDto;
     }
 
-    @Transactional
     @Override
     public List<BookingShortDto> getByOwnerId(Long userId, String state) {
         userService.findUserById(userId);
@@ -178,14 +175,14 @@ public class BookingServiceImpl implements BookingService {
             case ALL: {
                 bookingShortDto = bookingRepository.findAllByOwnerId(userId)
                         .stream()
-                        .map(BookingMapper::toBookingShortDto)
+                        .map(bookingMapper::toBookingShortDto)
                         .collect(Collectors.toList());
                 break;
             }
             case CURRENT: {
                 bookingShortDto = bookingRepository.findAllByOwnerIdAndStartBeforeAndEndAfter(userId, now)
                         .stream()
-                        .map(BookingMapper::toBookingShortDto)
+                        .map(bookingMapper::toBookingShortDto)
                         .collect(Collectors.toList());
                 break;
             }
@@ -193,7 +190,7 @@ public class BookingServiceImpl implements BookingService {
             case FUTURE: {
                 bookingShortDto = bookingRepository.findAllByOwnerIdAndStartAfter(userId, now)
                         .stream()
-                        .map(BookingMapper::toBookingShortDto)
+                        .map(bookingMapper::toBookingShortDto)
                         .collect(Collectors.toList());
                 break;
             }
@@ -201,7 +198,7 @@ public class BookingServiceImpl implements BookingService {
             case WAITING: {
                 bookingShortDto = bookingRepository.findAllByOwnerIdAndStatus(userId, BookingStatus.WAITING)
                         .stream()
-                        .map(BookingMapper::toBookingShortDto)
+                        .map(bookingMapper::toBookingShortDto)
                         .collect(Collectors.toList());
                 break;
             }
@@ -209,7 +206,7 @@ public class BookingServiceImpl implements BookingService {
             case REJECTED: {
                 bookingShortDto = bookingRepository.findAllByOwnerIdAndStatus(userId, BookingStatus.REJECTED)
                         .stream()
-                        .map(BookingMapper::toBookingShortDto)
+                        .map(bookingMapper::toBookingShortDto)
                         .collect(Collectors.toList());
                 break;
             }
@@ -217,7 +214,7 @@ public class BookingServiceImpl implements BookingService {
             case PAST: {
                 bookingShortDto = bookingRepository.findAllByOwnerIdAndEndBefore(userId, now)
                         .stream()
-                        .map(BookingMapper::toBookingShortDto)
+                        .map(bookingMapper::toBookingShortDto)
                         .collect(Collectors.toList());
                 break;
             }
@@ -228,7 +225,6 @@ public class BookingServiceImpl implements BookingService {
         }
         return bookingShortDto;
     }
-
 
     private Booking getBookingIfExists(Long id) {
         Optional<Booking> bookingOptional = bookingRepository.findById(id);
