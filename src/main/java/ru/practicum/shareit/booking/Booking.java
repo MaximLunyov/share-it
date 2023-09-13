@@ -60,7 +60,7 @@ public class Booking {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "booking_id")
+    @Column(name = "id")
     private long id;
 
     @Column(name = "start_booking")
@@ -70,11 +70,11 @@ public class Booking {
     private LocalDateTime end;
 
     @ManyToOne()
-    @JoinColumn(name = "item_id", referencedColumnName = "item_id")
+    @JoinColumn(name = "item_id", referencedColumnName = "id")
     private Item item;
 
     @ManyToOne()
-    @JoinColumn(name = "booker_id", referencedColumnName = "user_id")
+    @JoinColumn(name = "booker_id", referencedColumnName = "id")
     private User booker;
 
     @Enumerated(EnumType.STRING)
