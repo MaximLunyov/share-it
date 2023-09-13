@@ -9,7 +9,7 @@ public class CommentMapper {
         commentDto.setId(comment.getId());
         commentDto.setText(comment.getText());
         commentDto.setAuthorName(comment.getAuthor().getName());
-        commentDto.setDateTime(comment.getCreated());
+        commentDto.setCreated(comment.getCreated());
 
         return commentDto;
     }
@@ -18,7 +18,7 @@ public class CommentMapper {
         Comment comment = new Comment();
         comment.setId(commentDto.getId());
         comment.setText(commentDto.getText());
-        comment.setCreated(commentDto.getDateTime());
+        comment.setCreated(commentDto.getCreated());
 
         return comment;
     }

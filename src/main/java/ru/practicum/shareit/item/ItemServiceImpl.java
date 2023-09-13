@@ -8,6 +8,7 @@ import ru.practicum.shareit.booking.Booking;
 import ru.practicum.shareit.booking.BookingRepository;
 import ru.practicum.shareit.booking.BookingStatus;
 import ru.practicum.shareit.booking.dto.BookingMapper;
+import ru.practicum.shareit.booking.dto.BookingShortDto;
 import ru.practicum.shareit.item.comment.Comment;
 import ru.practicum.shareit.item.comment.CommentDto;
 import ru.practicum.shareit.item.comment.CommentMapper;
@@ -163,25 +164,50 @@ public class ItemServiceImpl implements ItemService {
     private ItemDto addNextAndLastBookingsAndComments(Long id, Long sharerUserId) {
         Item item = itemRepository.findById(id).get();
         ItemDto itemDto = ItemMapper.toItemDto(item);
-        try {
-            if (item.getUserId() == sharerUserId) {
-                itemDto.setLastBooking(bookingMapper.toBookingShortDto(bookingRepository.findFirstByItemIdAndEndBeforeOrderByEndDesc(id,
-                                LocalDateTime.now())));
+
+
+        if (item.getUserId() == sharerUserId) {
+            Optional<Booking> bk = Optional.ofNullable(bookingRepository.findFirstByItemIdAndEndBeforeOrderByEndDesc(id,
+                    LocalDateTime.now()));
+
+            if (bk.isEmpty()) {
+                List<Booking> bookingList = bookingRepository.test2(id, LocalDateTime.now());
+                if (bookingList.size() == 1) {
+                    Optional<Booking> booking = bookingRepository.test2(id, LocalDateTime.now()).stream().findFirst();
+                    if (booking.isPresent() && booking.get().getStatus().equals(BookingStatus.APPROVED)) {
+                        itemDto.setLastBooking(bookingMapper.toBookingShortDto(booking.get()));
+                    }
+                } else {
+                    itemDto.setLastBooking(null);
+                }
             } else {
-                itemDto.setLastBooking(null);
+                BookingShortDto bookingShortDto = bookingMapper.toBookingShortDto(bk.get());
+                if (bookingShortDto.getStatus().equals(BookingStatus.APPROVED)) {
+                    itemDto.setLastBooking(bookingShortDto);
+                } else {
+                    itemDto.setLastBooking(null);
+                }
             }
-        } catch (NullPointerException e) {
+        } else {
             itemDto.setLastBooking(null);
         }
 
-        try {
-            if (item.getUserId() == sharerUserId) {
-                itemDto.setNextBooking(bookingMapper.toBookingShortDto(bookingRepository.findFirstByItemIdAndStartAfterOrderByStartAsc(id,
-                                LocalDateTime.now())));
+        if (item.getUserId() == sharerUserId) {
+            Optional<Booking> bk = Optional.ofNullable(bookingRepository.findFirstByItemIdAndStartAfterOrderByStartAsc(id,
+                    LocalDateTime.now()));
+
+            if (bk.isEmpty()) {
+                itemDto.setNextBooking(null);
             } else {
-                itemDto.setLastBooking(null);
+                BookingShortDto bookingShortDto = bookingMapper.toBookingShortDto(bk.get());
+                if (bookingShortDto.getStatus().equals(BookingStatus.APPROVED)) {
+                    itemDto.setNextBooking(bookingShortDto);
+                } else {
+                    itemDto.setNextBooking(null);
+                }
             }
-        } catch (NullPointerException e) {
+
+        } else {
             itemDto.setNextBooking(null);
         }
 
