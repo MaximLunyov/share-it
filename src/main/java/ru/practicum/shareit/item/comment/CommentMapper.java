@@ -2,6 +2,9 @@ package ru.practicum.shareit.item.comment;
 
 import lombok.experimental.UtilityClass;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @UtilityClass
 public class CommentMapper {
     public CommentDto toCommentDto(Comment comment) {
@@ -21,5 +24,13 @@ public class CommentMapper {
         comment.setCreated(commentDto.getCreated());
 
         return comment;
+    }
+
+    public List<CommentDto> toCommentDtoList(List<Comment> comments) {
+        List<CommentDto> commentDtoList = new ArrayList<>();
+        for (Comment comment : comments) {
+            commentDtoList.add(toCommentDto(comment));
+        }
+        return commentDtoList;
     }
 }

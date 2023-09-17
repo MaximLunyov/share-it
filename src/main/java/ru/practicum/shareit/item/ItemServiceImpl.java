@@ -2,10 +2,12 @@ package ru.practicum.shareit.item;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.Booking;
 import ru.practicum.shareit.booking.BookingRepository;
+import ru.practicum.shareit.booking.BookingState;
 import ru.practicum.shareit.booking.BookingStatus;
 import ru.practicum.shareit.booking.dto.BookingMapper;
 import ru.practicum.shareit.booking.dto.BookingShortDto;
@@ -20,11 +22,11 @@ import ru.practicum.shareit.user.UserService;
 
 import javax.validation.ValidationException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.*;
+
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
+import static org.springframework.data.domain.Sort.Direction.DESC;
 
 @Slf4j
 @Service
@@ -94,16 +96,51 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public List<ItemDto> findAllItems(long sharerUserId) {
         checkUserExists(sharerUserId);
-        List<Long> idList = itemRepository.findAllByUserIdOrderById(sharerUserId)
-                .stream()
-                .map(Item::getId)
-                .collect(Collectors.toList());
-        List<ItemDto> itemDto = new ArrayList<>();
-        for (Long id : idList) {
-            itemDto.add(addNextAndLastBookingsAndComments(id, sharerUserId));
-        }
-        return itemDto;
+        List<Item> items = itemRepository.findAllByUserIdOrderById(sharerUserId);
 
+        Map<Item, List<Comment>> comments = commentRepository.findByItemIn(items, Sort.by(DESC, "created"))
+                .stream()
+                .collect(groupingBy(Comment::getItem, toList()));
+        Map<Item, List<CommentDto>> commentsDtos = new HashMap<>();
+
+        for (Item item : comments.keySet()) {
+            commentsDtos.put(item, CommentMapper.toCommentDtoList(comments.get(item)));
+        }
+
+
+        Map<Item, List<Booking>> approvedBookings = bookingRepository.findApprovedForItems(items, Sort.by(DESC, "start"))
+                        .stream()
+                        .collect(groupingBy(Booking::getItem, toList()));
+
+        List<ItemDto> results = new ArrayList<>();
+        for (Item item : items) {
+            ItemDto itemInfo =  ItemMapper.toItemDto(item);
+
+            if (!commentsDtos.isEmpty()) {
+                itemInfo.setComments(commentsDtos.get(item));
+            }
+
+            if (!approvedBookings.isEmpty()) {
+                List<Booking> bookingList = approvedBookings.getOrDefault(item, new ArrayList<>());
+
+                if (!bookingList.isEmpty()) {
+                    for (Booking booking : bookingList) {
+
+                        itemInfo.setLastBooking(bookingMapper.toBookingShortDto(bookingList.get(bookingList.size() - 1)));
+                        List<Booking> sorted = bookingList.stream()
+                                .filter(booking1 -> booking1.getEnd().isAfter(LocalDateTime.now()))
+                                .sorted(Comparator.comparing(Booking::getStart))
+                                .collect(toList());
+
+                        itemInfo.setNextBooking(bookingMapper.toBookingShortDto(sorted.get(0)));
+
+                    }
+                }
+            }
+
+            results.add(itemInfo);
+        }
+        return results;
     }
 
     @Override
@@ -214,7 +251,7 @@ public class ItemServiceImpl implements ItemService {
         try {
             itemDto.setComments(commentRepository.findAllByItemId(id).stream()
                     .map(CommentMapper::toCommentDto)
-                    .collect(Collectors.toList()));
+                    .collect(toList()));
         } catch (Error e) {
             log.info("error 2");
         }
@@ -230,7 +267,7 @@ public class ItemServiceImpl implements ItemService {
                 .filter(booking -> booking.getBooker().getId() == userId)
                 .filter(booking -> booking.getStatus().equals(BookingStatus.APPROVED))
                 .filter(booking -> booking.getStart().isBefore(LocalDateTime.now()))
-                .collect(Collectors.toList());
+                .collect(toList());
 
         if (bookingList.isEmpty()) {
             throw new ValidationException();

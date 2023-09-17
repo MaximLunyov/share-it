@@ -50,6 +50,17 @@ public class Comment {
         this.created = created;
     }
 
+    @Override
+    public String toString() {
+        return "Comment{" +
+                "id=" + id +
+                ", text='" + text + '\'' +
+                ", item=" + item +
+                ", author=" + author +
+                ", created=" + created +
+                '}';
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column

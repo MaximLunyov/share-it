@@ -1,9 +1,12 @@
 package ru.practicum.shareit.booking;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import ru.practicum.shareit.item.model.Item;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
@@ -52,4 +55,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             " where b.item.id = ?1" +
             " order by b.start ASC") //b.start DESC
     List<Booking> test2(Long itemId, LocalDateTime end);
+
+    @Query(" select b " +
+            "from Booking b " +
+            "where b.item in ?1 " +
+            "  and b.status = 'APPROVED'")
+    List<Booking> findApprovedForItems(Collection<Item> items, Sort sort);
 }
