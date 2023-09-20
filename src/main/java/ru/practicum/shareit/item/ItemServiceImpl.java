@@ -2,9 +2,13 @@ package ru.practicum.shareit.item;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.Pagination;
 import ru.practicum.shareit.booking.Booking;
 import ru.practicum.shareit.booking.BookingRepository;
 import ru.practicum.shareit.booking.BookingStatus;
@@ -93,9 +97,35 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public List<ItemDto> findAllItems(long sharerUserId) {
+    public List<ItemDto> getItemsByOwner(long sharerUserId, Integer from, Integer size) {
         checkUserExists(sharerUserId);
-        List<Item> items = itemRepository.findAllByUserIdOrderById(sharerUserId);
+        List<Item> items = new ArrayList<>();
+        Pageable pageable;
+        Sort sort = Sort.by(Sort.Direction.ASC, "id");
+        Page<Item> page;
+        Pagination pager = new Pagination(from, size);
+
+        if (size == null) {
+            pageable =
+                    PageRequest.of(pager.getIndex(), pager.getPageSize(), sort);
+            do {
+                page = itemRepository.findByUserId(sharerUserId, pageable);
+                items.addAll(page.stream().collect(toList()));
+                pageable = pageable.next();
+            } while (page.hasNext());
+
+        } else {
+            for (int i = pager.getIndex(); i < pager.getTotalPages(); i++) {
+                pageable =
+                        PageRequest.of(i, pager.getPageSize(), sort);
+                page = itemRepository.findByUserId(sharerUserId, pageable);
+                items.addAll(page.stream().collect(toList()));
+                if (!page.hasNext()) {
+                    break;
+                }
+            }
+            items = items.stream().limit(size).collect(toList());
+        }
 
         Map<Item, List<Comment>> comments = commentRepository.findByItemIn(items, Sort.by(DESC, "created"))
                 .stream()
@@ -175,6 +205,14 @@ public class ItemServiceImpl implements ItemService {
         return CommentMapper.toCommentDto(comment);
     }
 
+    @Override
+    public List<ItemDto> getItemsByRequestId(Long requestId) {
+        return itemRepository.findAllByRequestId(requestId,
+                        Sort.by(Sort.Direction.DESC, "id")).stream()
+                .map(ItemMapper::toItemDto)
+                .collect(toList());
+    }
+
     @Transactional
     @Override
     public void deleteItem(long id, long sharerUserId) {
@@ -182,12 +220,41 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public List<Item> searchByText(String text, long sharerUserId) {
-        checkUserExists(sharerUserId);
+    public List<Item> searchByText(String text, Integer from, Integer size) {
         if (text.isBlank()) {
             return new ArrayList<>();
         }
-        return itemRepository.search(text);
+        List<Item> items = new ArrayList<>();
+
+        text = text.toLowerCase();
+        Pageable pageable;
+        Sort sort = Sort.by(Sort.Direction.ASC, "name");
+        Page<Item> page;
+        Pagination pager = new Pagination(from, size);
+
+        if (size == null) {
+            pageable =
+                    PageRequest.of(pager.getIndex(), pager.getPageSize(), sort);
+            do {
+                page = itemRepository.getItemsBySearchQuery(text, pageable);
+                items.addAll(page.stream().collect(toList()));
+                pageable = pageable.next();
+            } while (page.hasNext());
+
+        } else {
+            for (int i = pager.getIndex(); i < pager.getTotalPages(); i++) {
+                pageable =
+                        PageRequest.of(i, pager.getPageSize(), sort);
+                page = itemRepository.getItemsBySearchQuery(text, pageable);
+                items.addAll(page.stream().collect(toList()));
+                if (!page.hasNext()) {
+                    break;
+                }
+            }
+            items = items.stream().limit(size).collect(toList());
+        }
+
+        return items;
     }
 
     @Override
@@ -259,7 +326,6 @@ public class ItemServiceImpl implements ItemService {
     }
 
     private void checkUserMadeBooking(long userId, long itemId) {
-
         List<Booking> bookingList = bookingRepository.findAllBookingsByBooker(userId)
                 .stream()
                 .filter(booking -> booking.getItem().getId() == itemId)

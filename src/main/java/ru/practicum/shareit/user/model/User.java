@@ -8,6 +8,29 @@ import javax.validation.constraints.NotBlank;
 @Table(name = "users")
 public class User {
 
+    public User(long id, String name, String email) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+    }
+
+    public User() {
+
+    }
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private long id;
+
+    @Column(name = "name")
+    @NotBlank(message = "Передано пустое имя")
+    private String name;
+
+    @Column(name = "email", nullable = false, length = 256, unique = true)
+    @Email(message = "Некорректно указана электронная почта")
+    private String email;
+
     public long getId() {
         return id;
     }
@@ -40,17 +63,4 @@ public class User {
                 ", email='" + email + '\'' +
                 '}';
     }
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private long id;
-
-    @Column(name = "name")
-    @NotBlank(message = "Передано пустое имя")
-    private String name;
-
-    @Column(name = "email", nullable = false, length = 256, unique = true)
-    @Email(message = "Некорректно указана электронная почта")
-    private String email;
 }
