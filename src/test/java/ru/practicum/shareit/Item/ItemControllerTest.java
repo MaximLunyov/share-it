@@ -137,6 +137,7 @@ public class ItemControllerTest {
                 .andExpect(jsonPath("$.[0].description", is(item.getDescription())))
                 .andExpect(jsonPath("$.[0].available", is(item.getAvailable())));
     }
+
     @Test
     void createComment() throws Exception {
         when(itemService.createComment(any(), any(Long.class), any(Long.class)))
