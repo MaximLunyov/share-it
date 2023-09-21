@@ -213,11 +213,11 @@ public class ItemServiceImpl implements ItemService {
                 .collect(toList());
     }
 
-    @Transactional
+    /*@Transactional
     @Override
     public void deleteItem(long id, long sharerUserId) {
 
-    }
+    }*/
 
     @Override
     public List<Item> searchByText(String text, Integer from, Integer size) {

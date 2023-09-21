@@ -126,6 +126,7 @@ public class ItemControllerTest {
                 .thenReturn(List.of(item));
         mvc.perform(get("/items/search?text=description")
                         .content(mapper.writeValueAsString(listItemDto))
+
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)

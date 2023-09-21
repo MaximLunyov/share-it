@@ -93,9 +93,42 @@ public class ItemJpaTest {
     @Test
     void shouldGetItemsByOwner() {
         User user = userService.createUser(userDto1);
+        User booker = userService.createUser(userDto2);
+        Item item = itemService.createItem(itemDto1, user.getId());
+        itemService.createItem(itemDto2, user.getId());
+
+        BookingDto bookingDtoStart = new BookingDto();
+        bookingDtoStart.setId(1L);
+        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
+        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
+        bookingDtoStart.setItemId(item.getId());
+
+        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
+
+        bookingService.updateBooking(user.getId(), bookingDto.getId(), true);
+
+        try {
+            sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        CommentDto commentDto = new CommentDto(1L, "Comment1",
+                booker.getName(), LocalDateTime.now());
+
+        CommentDto finalCommentDto = itemService.createComment(CommentMapper.toComment(commentDto),
+                booker.getId(), item.getId());
+
+        List<ItemDto> listItems = itemService.getItemsByOwner(user.getId(), 0, 10);
+        assertEquals(2, listItems.size());
+    }
+
+    @Test
+    void shouldGetItemsByOwnerWithEmptySize() {
+        User user = userService.createUser(userDto1);
         itemService.createItem(itemDto1, user.getId());
         itemService.createItem(itemDto2, user.getId());
-        List<ItemDto> listItems = itemService.getItemsByOwner(user.getId(), 0, 10);
+        List<ItemDto> listItems = itemService.getItemsByOwner(user.getId(), 0, null);
         assertEquals(2, listItems.size());
     }
 
@@ -106,6 +139,24 @@ public class ItemJpaTest {
         itemService.createItem(itemDto2, user.getId());
         List<Item> listItems = itemService.searchByText("hummer", 0, 1);
         assertEquals(1, listItems.size());
+    }
+
+    @Test
+    void shouldGetItemsBySearchWithEmptySize() {
+        User user = userService.createUser(userDto1);
+        itemService.createItem(itemDto1, user.getId());
+        itemService.createItem(itemDto2, user.getId());
+        List<Item> listItems = itemService.searchByText("hummer", 0, null);
+        assertEquals(1, listItems.size());
+    }
+
+    @Test
+    void shouldGetItemsBySearchWithEmptyText() {
+        User user = userService.createUser(userDto1);
+        itemService.createItem(itemDto1, user.getId());
+        itemService.createItem(itemDto2, user.getId());
+        List<Item> listItems = itemService.searchByText("", 0, 100);
+        assertEquals(0, listItems.size());
     }
 
     @Test
@@ -138,6 +189,38 @@ public class ItemJpaTest {
     }
 
     @Test
+    void shouldReturnCommentToString() {
+        User user = userService.createUser(userDto1);
+        User commentor = userService.createUser(userDto2);
+        Item item = itemService.createItem(itemDto1, user.getId());
+
+        BookingDto bookingDtoStart = new BookingDto();
+        bookingDtoStart.setId(1L);
+        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
+        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
+        bookingDtoStart.setItemId(item.getId());
+
+        BookingDto bookingDto = bookingService.createBooking(commentor.getId(), bookingDtoStart);
+        bookingService.updateBooking(user.getId(), bookingDto.getId(), true);
+
+        try {
+            sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        CommentDto commentDto = new CommentDto(1L, "Comment1",
+                commentor.getName(), LocalDateTime.of(2023, 12, 1, 1, 1));
+
+        CommentDto finalCommentDto = itemService.createComment(CommentMapper.toComment(commentDto),
+                commentor.getId(), item.getId());
+        finalCommentDto.setCreated(LocalDateTime.of(2023, 12, 1, 1, 1));
+        String check = "Comment{id=1, text='Comment1', item=null," +
+                " author=null, created=2023-12-01T01:01}";
+        assertThat(CommentMapper.toComment(finalCommentDto).toString(), equalTo(check));
+    }
+
+    @Test
     void shouldNotCreateComment() {
         User user1 = userService.createUser(userDto1);
         User user2 = userService.createUser(userDto2);
@@ -149,5 +232,13 @@ public class ItemJpaTest {
         final ValidationException exception = Assertions.assertThrows(
                 ValidationException.class,
                 () -> itemService.createComment(CommentMapper.toComment(commentDto), user2.getId(), item.getId()));
+    }
+
+    @Test
+    void shouldFindItemDtoById() {
+        User user = userService.createUser(userDto2);
+        Item item = itemService.createItem(itemDto2, user.getId());
+        ItemDto itemDto = itemService.findItemDtoById(item.getId(), user.getId());
+        assertThat(item.getName(), equalTo(itemDto.getName()));
     }
 }

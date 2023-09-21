@@ -120,6 +120,30 @@ public class BookingControllerTest {
     }
 
     @Test
+    void getBookingsByUser() throws Exception {
+        when(bookingService.getByUserId(any(Long.class), any(String.class),
+                any(Integer.class), nullable(Integer.class)))
+                .thenReturn(List.of(bookingShortDto));
+
+        mvc.perform(get("/bookings?from=0&size=10")
+                        .content(mapper.writeValueAsString(listBookingDto))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.[0].id", is(bookingDto.getId()), Long.class))
+                /*.andExpect(jsonPath("$.[0].start", is(bookingDto.getStart()
+                        .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))))
+                .andExpect(jsonPath("$.[0].end", is(bookingDto.getEnd()
+                        .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))))*/
+                .andExpect(jsonPath("$.[0].item.id", is(bookingDto.getItem().getId()), Long.class))
+                .andExpect(jsonPath("$.[0].booker.id", is(bookingDto.getBooker().getId()), Long.class))
+                .andExpect(jsonPath("$.[0].status", is(bookingDto.getStatus().toString())));
+    }
+
+    @Test
     void updateBooking() throws Exception {
         when(bookingService.updateBooking(any(Long.class), any(Long.class), any(Boolean.class)))
                 .thenReturn(bookingDto);

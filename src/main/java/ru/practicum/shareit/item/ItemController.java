@@ -66,11 +66,11 @@ public class ItemController {
         return itemService.updateItem(id, itemDto, sharerUserId);
     }
 
-    @DeleteMapping("/{id}")
+    /*@DeleteMapping("/{id}")
     public void deleteItem(@PathVariable long id, @RequestHeader("x-sharer-user-id") long sharerUserId) {
         log.info("Получен запрос на удаление пользователя c id: " + id);
         itemService.deleteItem(id, sharerUserId);
-    }
+    }*/
 
     @PostMapping("/{itemId}/comment")
     public CommentDto addComment(@RequestHeader(name = "X-Sharer-User-Id") Long sharerUserId,

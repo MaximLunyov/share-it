@@ -13,10 +13,13 @@ import ru.practicum.shareit.user.dto.UserMapper;
 import ru.practicum.shareit.user.model.User;
 
 import javax.validation.ConstraintViolationException;
+import javax.validation.ValidationException;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+
 @SpringBootTest
 @Transactional
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
@@ -75,5 +78,40 @@ public class UserJpaTest {
                 DataIntegrityViolationException.class,
                 () -> userService.createUser(UserMapper.toUserDto(new User(3L,
                         "NextUser", "test@test.gmail"))));
+    }
+
+    @Test
+    void shouldThrowExceptionByWrongIncomingData() {
+        User userNew = new User(2L, "Ivan", "ivan@mail.ru");
+        Assertions.assertThrows(NoSuchElementException.class,
+                () -> userService.updateUser(userNew.getId(), UserMapper.toUserDto(user)));
+    }
+
+    @Test
+    void shouldUpdateUserEmail() {
+        UserDto userDto = new UserDto(1L, "Max", "updated@mail.ru");
+        User user1 = userService.createUser(UserMapper.toUserDto(user));
+        User check = userService.updateUser(user1.getId(), userDto);
+        assertThat(check.getEmail(), equalTo("updated@mail.ru"));
+    }
+
+    @Test
+    void shouldNotUpdateByNotExistedUser() {
+        Assertions.assertThrows(NoSuchElementException.class,
+                () -> userService.updateUser(100L, UserMapper.toUserDto(user)));
+    }
+
+    @Test
+    void shouldThrowValidationExceptionIfWrongUserData() {
+        UserDto userDto = UserMapper.toUserDto(user);
+
+        userDto.setEmail(null);
+        Assertions.assertThrows(ValidationException.class,
+                () -> userService.createUser(userDto));
+
+        userDto.setEmail("da@ya.ru");
+        userDto.setName("");
+        Assertions.assertThrows(ValidationException.class,
+                () -> userService.createUser(userDto));
     }
 }

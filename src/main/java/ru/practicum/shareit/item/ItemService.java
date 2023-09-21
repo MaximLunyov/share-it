@@ -17,7 +17,7 @@ public interface ItemService {
 
     ItemDto findItemDtoById(long id, long sharerUserId);
 
-    void deleteItem(long id, long sharerUserId);
+    /*void deleteItem(long id, long sharerUserId);*/
 
     List<Item> searchByText(String text, Integer from, Integer size);
 
