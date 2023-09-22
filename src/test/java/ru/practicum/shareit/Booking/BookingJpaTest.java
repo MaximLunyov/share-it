@@ -61,7 +61,6 @@ public class BookingJpaTest {
         bookingDtoStart.setItemId(item.getId());
     }
 
-    
     @Test
     void shouldCreateBooking() {
 
