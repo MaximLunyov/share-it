@@ -3,6 +3,7 @@ package ru.practicum.shareit.ItemRequest;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -38,10 +39,15 @@ public class ItemRequestJpaTest {
 
     private ItemRequestDto itemRequestDto = new ItemRequestDto(1L, "Searching for camera",
             userDto1, LocalDateTime.of(2023, 9, 21, 18, 0, 0), null);
+    private User user;
+
+    @BeforeEach
+    void set() {
+        user = userService.createUser(userDto1);
+    }
 
     @Test
     void shouldCreateItemRequest() {
-        User user = userService.createUser(userDto1);
         ItemRequestDto returnRequestDto = itemRequestService.create(itemRequestDto, user.getId(),
                 LocalDateTime.of(2023, 9, 21, 18, 0, 0));
         assertThat(returnRequestDto.getDescription(), equalTo(itemRequestDto.getDescription()));
@@ -56,15 +62,12 @@ public class ItemRequestJpaTest {
 
     @Test
     void shouldNotCreateItemRequestWithWrongId() {
-        User user = userService.createUser(userDto1);
         NoSuchElementException exp = assertThrows(NoSuchElementException.class,
                 () -> itemRequestService.getItemRequestById(100L, user.getId()));
     }
 
     @Test
     void shouldReturnOwnItemRequests() {
-        User user = userService.createUser(userDto1);
-
         itemRequestService.create(itemRequestDto, user.getId(),
                 LocalDateTime.of(2023, 9, 21, 18, 0, 0));
         itemRequestService.create(itemRequestDto, user.getId(),
@@ -76,8 +79,6 @@ public class ItemRequestJpaTest {
 
     @Test
     void shouldReturnItemRequestById() {
-        User user = userService.createUser(userDto1);
-
         ItemRequestDto newItemRequestDto = itemRequestService.create(itemRequestDto, user.getId(),
                 LocalDateTime.of(2023, 9, 21, 18, 0, 0));
 
@@ -89,7 +90,6 @@ public class ItemRequestJpaTest {
 
     @Test
     void shouldReturnItemRequestToString() {
-        User user = userService.createUser(userDto1);
         ItemRequestDto returnRequestDto = itemRequestService.create(itemRequestDto, user.getId(),
                 LocalDateTime.of(2023, 9, 21, 18, 0, 0));
         String check = "ItemRequestDto(id=" + returnRequestDto.getId() +
@@ -103,7 +103,6 @@ public class ItemRequestJpaTest {
 
     @Test
     void shouldGetAllItemRequests() {
-        User user = userService.createUser(userDto1);
         User user2 = userService.createUser(userDto2);
         itemRequestService.create(itemRequestDto, user.getId(),
                 LocalDateTime.of(2023, 9, 21, 18, 0, 0));
@@ -116,7 +115,6 @@ public class ItemRequestJpaTest {
 
     @Test
     void shouldGetAllItemRequestsWithEmptySize() {
-        User user = userService.createUser(userDto1);
         User user2 = userService.createUser(userDto2);
         itemRequestService.create(itemRequestDto, user.getId(),
                 LocalDateTime.of(2023, 9, 21, 18, 0, 0));

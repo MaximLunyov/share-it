@@ -3,6 +3,7 @@ package ru.practicum.shareit.Booking;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,21 +44,28 @@ public class BookingJpaTest {
     private UserDto userDto2 = new UserDto(101L, "Ivan", "ivan@ya.ru");
     private ItemDto itemDto1 = new ItemDto(101L, "Hummer", "Small", true, null, null, null, null);
     private ItemDto itemDto2 = new ItemDto(102L, "Fork", "Tiny", true, null, null, null, null);
+    private User user;
+    private User secondUser;
+    private Item item;
+    private BookingDto bookingDtoStart;
 
-    @Test
-    void shouldCreateBooking() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
+    @BeforeEach
+    void set() {
+        user = userService.createUser(userDto1);
+        secondUser = userService.createUser(userDto2);
+        item = itemService.createItem(itemDto1, user.getId());
+        bookingDtoStart = new BookingDto();
         bookingDtoStart.setId(1L);
         bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
         bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
         bookingDtoStart.setItemId(item.getId());
+    }
 
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
+    
+    @Test
+    void shouldCreateBooking() {
+
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
 
         bookingService.updateBooking(user.getId(), bookingDto.getId(), true);
 
@@ -68,61 +76,34 @@ public class BookingJpaTest {
         }
 
         CommentDto commentDto = new CommentDto(1L, "Comment1",
-                booker.getName(), LocalDateTime.now());
+                secondUser.getName(), LocalDateTime.now());
 
         CommentDto finalCommentDto = itemService.createComment(CommentMapper.toComment(commentDto),
-                booker.getId(), item.getId());
+                secondUser.getId(), item.getId());
         assertThat(bookingDtoStart.getItemId(), equalTo(bookingDto.getItemId()));
     }
 
     @Test
     void shouldNotCreateBookingIfItemNotExists() {
-        User booker = userService.createUser(userDto2);
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
         bookingDtoStart.setItemId(3L);
 
         final NoSuchElementException exception = Assertions.assertThrows(
                 NoSuchElementException.class,
-                () -> bookingService.createBooking(booker.getId(), bookingDtoStart));
+                () -> bookingService.createBooking(secondUser.getId(), bookingDtoStart));
     }
 
     @Test
     void shouldNotCreateBookingIfItemNotAvailable() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
         itemDto1.setAvailable(false);
         itemService.updateItem(item.getId(), itemDto1, user.getId());
 
         final ValidationException exception = Assertions.assertThrows(
                 ValidationException.class,
-                () -> bookingService.createBooking(booker.getId(), bookingDtoStart));
+                () -> bookingService.createBooking(secondUser.getId(), bookingDtoStart));
     }
 
     @Test
     void shouldNotCreateBookingIfBookerIsOwner() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
         final NoSuchElementException exception = Assertions.assertThrows(
                 NoSuchElementException.class,
                 () -> bookingService.createBooking(user.getId(), bookingDtoStart));
@@ -130,47 +111,28 @@ public class BookingJpaTest {
 
     @Test
     void shouldThrowValidationExceptionByWrongBookingTime() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
         bookingDtoStart.setStart(null);
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
 
         final ValidationException exception = Assertions.assertThrows(
                 ValidationException.class,
-                () -> bookingService.createBooking(booker.getId(), bookingDtoStart));
+                () -> bookingService.createBooking(secondUser.getId(), bookingDtoStart));
 
         bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(4));
         final ValidationException exception2 = Assertions.assertThrows(
                 ValidationException.class,
-                () -> bookingService.createBooking(booker.getId(), bookingDtoStart));
+                () -> bookingService.createBooking(secondUser.getId(), bookingDtoStart));
 
         bookingDtoStart.setStart(LocalDateTime.of(2023,1,1,1,1));
         bookingDtoStart.setEnd(LocalDateTime.of(2023,1,1,1,1));
         final ValidationException exception3 = Assertions.assertThrows(
                 ValidationException.class,
-                () -> bookingService.createBooking(booker.getId(), bookingDtoStart));
+                () -> bookingService.createBooking(secondUser.getId(), bookingDtoStart));
     }
 
     @Test
     void shouldUpdateBooking() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
 
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
         BookingDto updatedBooking = bookingService.updateBooking(user.getId(), bookingDto.getId(), false);
 
         assertThat(updatedBooking.getStatus(), equalTo(BookingStatus.REJECTED));
@@ -182,38 +144,16 @@ public class BookingJpaTest {
 
     @Test
     void shouldNotUpdateBookingIfWrongOwner() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
 
         final NoSuchElementException exception = Assertions.assertThrows(
                 NoSuchElementException.class,
-                () -> bookingService.updateBooking(booker.getId(), bookingDto.getId(), false));
+                () -> bookingService.updateBooking(secondUser.getId(), bookingDto.getId(), false));
     }
 
     @Test
     void shouldGetBookingById() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
 
         BookingShortDto checked = bookingService.getById(user.getId(), bookingDto.getId());
 
@@ -226,18 +166,9 @@ public class BookingJpaTest {
 
     @Test
     void shouldNotGetBookingByIdIfNotOwner() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
         bookingDtoStart.setItemId(item.getId());
 
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
 
         final NoSuchElementException exception = Assertions.assertThrows(
                 NoSuchElementException.class,
@@ -247,18 +178,7 @@ public class BookingJpaTest {
 
     @Test
     void shouldNotGetAllBookingsByOwnerWithStateAll() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
 
         List<BookingShortDto> bookingShortDtos = bookingService.getByOwnerId(user.getId(), "ALL", 0, 100);
 
@@ -269,18 +189,7 @@ public class BookingJpaTest {
 
     @Test
     void shouldGetAllBookingsByOwnerWithStateCurrent() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
         List<BookingShortDto> bookingShortDtos = bookingService.getByOwnerId(user.getId(), "CURRENT", 0, 100);
 
         assertThat(bookingShortDtos.size(), equalTo(0));
@@ -288,18 +197,7 @@ public class BookingJpaTest {
 
     @Test
     void shouldGetAllBookingsByOwnerWithStateFuture() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
         List<BookingShortDto> bookingShortDtos = bookingService.getByOwnerId(user.getId(), "FUTURE", 0, 100);
 
         assertThat(bookingShortDtos.size(), equalTo(1));
@@ -307,18 +205,7 @@ public class BookingJpaTest {
 
     @Test
     void shouldGetAllBookingsByOwnerWithStatePast() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
         List<BookingShortDto> bookingShortDtos = bookingService.getByOwnerId(user.getId(), "PAST", 0, 100);
 
         assertThat(bookingShortDtos.size(), equalTo(0));
@@ -326,18 +213,7 @@ public class BookingJpaTest {
 
     @Test
     void shouldThrowExceptionIfGetAllBookingsByOwnerWithStateUnknown() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
 
         final ValidationException exception = Assertions.assertThrows(
                 ValidationException.class,
@@ -346,18 +222,7 @@ public class BookingJpaTest {
 
     @Test
     void shouldGetAllBookingsByOwnerWithStateRejected() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
         bookingService.updateBooking(user.getId(), bookingDto.getId(), false);
         List<BookingShortDto> bookingShortDtos = bookingService.getByOwnerId(user.getId(), "REJECTED", 0, 100);
 
@@ -366,19 +231,7 @@ public class BookingJpaTest {
 
     @Test
     void shouldGetAllBookingsByOwnerWithStateWaiting() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
-
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
         List<BookingShortDto> bookingShortDtos = bookingService.getByOwnerId(user.getId(), "WAITING", 0, 100);
 
         assertThat(bookingShortDtos.size(), equalTo(1));
@@ -386,19 +239,7 @@ public class BookingJpaTest {
 
     @Test
     void shouldGetAllBookingsByOwnerWithStateAllWithoutSize() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
-
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
         List<BookingShortDto> bookingShortDtos = bookingService.getByOwnerId(user.getId(), "ALL", 0, null);
 
         assertThat(bookingShortDtos.size(), equalTo(1));
@@ -406,18 +247,7 @@ public class BookingJpaTest {
 
     @Test
     void shouldThrowValidationExceptionByWrongUpdateInfo() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
 
         final ValidationException exception = Assertions.assertThrows(
                 ValidationException.class,
@@ -436,159 +266,64 @@ public class BookingJpaTest {
 
     @Test
     void shouldGetAllBookingsByUserWithStateAll() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
-
-        List<BookingShortDto> bookingShortDtos = bookingService.getByUserId(booker.getId(), "ALL", 0, 100);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
+        List<BookingShortDto> bookingShortDtos = bookingService.getByUserId(secondUser.getId(), "ALL", 0, 100);
 
         assertThat(bookingShortDtos.size(), equalTo(1));
     }
 
     @Test
     void shouldGetAllBookingsByUserWithStateCurrent() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
-
-        List<BookingShortDto> bookingShortDtos = bookingService.getByUserId(booker.getId(), "CURRENT", 0, 100);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
+        List<BookingShortDto> bookingShortDtos = bookingService.getByUserId(secondUser.getId(), "CURRENT", 0, 100);
 
         assertThat(bookingShortDtos.size(), equalTo(0));
     }
 
     @Test
     void shouldGetAllBookingsByUserWithStatePast() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
-
-        List<BookingShortDto> bookingShortDtos = bookingService.getByUserId(booker.getId(), "PAST", 0, 100);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
+        List<BookingShortDto> bookingShortDtos = bookingService.getByUserId(secondUser.getId(), "PAST", 0, 100);
 
         assertThat(bookingShortDtos.size(), equalTo(0));
     }
 
     @Test
     void shouldGetAllBookingsByUserWithStateFuture() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
-
-        List<BookingShortDto> bookingShortDtos = bookingService.getByUserId(booker.getId(), "FUTURE", 0, 100);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
+        List<BookingShortDto> bookingShortDtos = bookingService.getByUserId(secondUser.getId(), "FUTURE", 0, 100);
 
         assertThat(bookingShortDtos.size(), equalTo(1));
     }
 
     @Test
     void shouldGetAllBookingsByUserWithStateRejected() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
-
-        List<BookingShortDto> bookingShortDtos = bookingService.getByUserId(booker.getId(), "REJECTED", 0, 100);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
+        List<BookingShortDto> bookingShortDtos = bookingService.getByUserId(secondUser.getId(), "REJECTED", 0, 100);
 
         assertThat(bookingShortDtos.size(), equalTo(0));
     }
 
     @Test
     void shouldGetAllBookingsByUserWithStateWaiting() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
-
-        List<BookingShortDto> bookingShortDtos = bookingService.getByUserId(booker.getId(), "WAITING", 0, 100);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
+        List<BookingShortDto> bookingShortDtos = bookingService.getByUserId(secondUser.getId(), "WAITING", 0, 100);
 
         assertThat(bookingShortDtos.size(), equalTo(1));
     }
 
     @Test
     void shouldThrowValidationExceptionByUserWithStateUnknown() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
 
         Assertions.assertThrows(ValidationException.class,
-                () -> bookingService.getByUserId(booker.getId(), "UNKNOWN", 0, 100));
+                () -> bookingService.getByUserId(secondUser.getId(), "UNKNOWN", 0, 100));
     }
 
     @Test
     void shouldGetAllBookingsByUserWithStateWaitingAndEmptySize() {
-        User user = userService.createUser(userDto1);
-        User booker = userService.createUser(userDto2);
-
-        Item item = itemService.createItem(itemDto1, user.getId());
-
-        BookingDto bookingDtoStart = new BookingDto();
-        bookingDtoStart.setId(1L);
-        bookingDtoStart.setStart(LocalDateTime.now().plusSeconds(1));
-        bookingDtoStart.setEnd(LocalDateTime.now().plusSeconds(4));
-        bookingDtoStart.setItemId(item.getId());
-
-        BookingDto bookingDto = bookingService.createBooking(booker.getId(), bookingDtoStart);
-
-        List<BookingShortDto> bookingShortDtos = bookingService.getByUserId(booker.getId(), "WAITING", 0, null);
+        BookingDto bookingDto = bookingService.createBooking(secondUser.getId(), bookingDtoStart);
+        List<BookingShortDto> bookingShortDtos = bookingService.getByUserId(secondUser.getId(), "WAITING", 0, null);
 
         assertThat(bookingShortDtos.size(), equalTo(1));
     }

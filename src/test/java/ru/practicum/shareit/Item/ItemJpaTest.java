@@ -3,6 +3,7 @@ package ru.practicum.shareit.Item;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -42,13 +43,18 @@ public class ItemJpaTest {
     private UserDto userDto2 = new UserDto(101L, "Ivan", "ivan@ya.ru");
     private ItemDto itemDto1 = new ItemDto(101L, "Hummer", "Small", true, null, null, null, null);
     private ItemDto itemDto2 = new ItemDto(102L, "Fork", "Tiny", true, null, null, null, null);
+    private User user;
+
+    @BeforeEach
+    void set() {
+        user = userService.createUser(userDto1);
+    }
 
     @Test
     void shouldCreateItem() {
-        User user = userService.createUser(userDto2);
-        Item item = itemService.createItem(itemDto2, user.getId());
+        Item item = itemService.createItem(itemDto1, user.getId());
         assertThat(user.getId(), equalTo(item.getUserId()));
-        assertThat(itemDto2.getName(), equalTo(item.getName()));
+        assertThat(itemDto1.getName(), equalTo(item.getName()));
     }
 
     @Test
@@ -57,7 +63,6 @@ public class ItemJpaTest {
                 NoSuchElementException.class,
                 () -> itemService.createItem(itemDto1, -1));
 
-        userService.createUser(userDto1);
         final ValidationException exception2 = Assertions.assertThrows(
                 ValidationException.class,
                 () -> itemService.createItem(new ItemDto(10L, "", "dawd",
@@ -71,7 +76,6 @@ public class ItemJpaTest {
 
     @Test
     void shouldUpdateItem() {
-        User user = userService.createUser(userDto1);
         Item item = itemService.createItem(itemDto1, user.getId());
         item.setName("Big Hummer");
         Item item2 = itemService.updateItem(item.getId(), ItemMapper.toItemDto(item), user.getId());
@@ -80,8 +84,6 @@ public class ItemJpaTest {
 
     @Test
     void shouldNotUpdateByWrongOwnerId() {
-
-        User user = userService.createUser(userDto1);
         User updater = userService.createUser(userDto2);
         Item item = itemService.createItem(itemDto1, user.getId());
         item.setName("Big Hummer");
@@ -92,7 +94,6 @@ public class ItemJpaTest {
 
     @Test
     void shouldGetItemsByOwner() {
-        User user = userService.createUser(userDto1);
         User booker = userService.createUser(userDto2);
         Item item = itemService.createItem(itemDto1, user.getId());
         itemService.createItem(itemDto2, user.getId());
@@ -125,7 +126,6 @@ public class ItemJpaTest {
 
     @Test
     void shouldGetItemsByOwnerWithEmptySize() {
-        User user = userService.createUser(userDto1);
         itemService.createItem(itemDto1, user.getId());
         itemService.createItem(itemDto2, user.getId());
         List<ItemDto> listItems = itemService.getItemsByOwner(user.getId(), 0, null);
@@ -134,7 +134,6 @@ public class ItemJpaTest {
 
     @Test
     void shouldGetItemsBySearch() {
-        User user = userService.createUser(userDto1);
         itemService.createItem(itemDto1, user.getId());
         itemService.createItem(itemDto2, user.getId());
         List<Item> listItems = itemService.searchByText("hummer", 0, 1);
@@ -143,7 +142,6 @@ public class ItemJpaTest {
 
     @Test
     void shouldGetItemsBySearchWithEmptySize() {
-        User user = userService.createUser(userDto1);
         itemService.createItem(itemDto1, user.getId());
         itemService.createItem(itemDto2, user.getId());
         List<Item> listItems = itemService.searchByText("hummer", 0, null);
@@ -152,7 +150,6 @@ public class ItemJpaTest {
 
     @Test
     void shouldGetItemsBySearchWithEmptyText() {
-        User user = userService.createUser(userDto1);
         itemService.createItem(itemDto1, user.getId());
         itemService.createItem(itemDto2, user.getId());
         List<Item> listItems = itemService.searchByText("", 0, 100);
@@ -161,7 +158,6 @@ public class ItemJpaTest {
 
     @Test
     void shouldCreateComment() {
-        User user = userService.createUser(userDto1);
         User commentor = userService.createUser(userDto2);
         Item item = itemService.createItem(itemDto1, user.getId());
 
@@ -190,7 +186,6 @@ public class ItemJpaTest {
 
     @Test
     void shouldReturnCommentToString() {
-        User user = userService.createUser(userDto1);
         User commentor = userService.createUser(userDto2);
         Item item = itemService.createItem(itemDto1, user.getId());
 
@@ -222,9 +217,8 @@ public class ItemJpaTest {
 
     @Test
     void shouldNotCreateComment() {
-        User user1 = userService.createUser(userDto1);
         User user2 = userService.createUser(userDto2);
-        Item item = itemService.createItem(itemDto1, user1.getId());
+        Item item = itemService.createItem(itemDto1, user.getId());
         LocalDateTime time = LocalDateTime.now();
 
         CommentDto commentDto = new CommentDto(1L, "Nice", user2.getName(), time.plusHours(2));
@@ -236,7 +230,6 @@ public class ItemJpaTest {
 
     @Test
     void shouldFindItemDtoById() {
-        User user = userService.createUser(userDto2);
         Item item = itemService.createItem(itemDto2, user.getId());
         ItemDto itemDto = itemService.findItemDtoById(item.getId(), user.getId());
         assertThat(item.getName(), equalTo(itemDto.getName()));
