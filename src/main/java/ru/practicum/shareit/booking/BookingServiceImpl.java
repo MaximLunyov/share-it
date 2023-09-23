@@ -2,8 +2,13 @@ package ru.practicum.shareit.booking;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.Pagination;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.BookingMapper;
 import ru.practicum.shareit.booking.dto.BookingShortDto;
@@ -86,10 +91,9 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<BookingShortDto> getByUserId(Long userId, String state) {
+    public List<BookingShortDto> getByUserId(Long userId, String state, Integer from, Integer size) {
         userService.findUserById(userId);
         BookingState bookingState = BookingState.UNKNOWN;
-        final LocalDateTime now = LocalDateTime.now();
         List<BookingShortDto> bookingShortDto = new ArrayList<>();
 
         if (!state.isBlank()) {
@@ -100,64 +104,92 @@ public class BookingServiceImpl implements BookingService {
             }
         }
 
-        switch (bookingState) {
-            case ALL: {
-                bookingShortDto = bookingRepository.findAllBookingsByBooker(userId)
-                        .stream()
-                        .map(bookingMapper::toBookingShortDto)
-                        .collect(Collectors.toList());
-                break;
-            }
+        Pageable pageable;
+        Sort sort = Sort.by(Sort.Direction.DESC, "start");
+        Page<Booking> page;
+        Pagination pager = new Pagination(from, size);
 
-            case CURRENT: {
-                bookingShortDto = bookingRepository.findAllBookingsForBookerWithStartAndEndTime(userId, now)
-                        .stream()
-                        .map(bookingMapper::toBookingShortDto)
-                        .collect(Collectors.toList());
-                break;
-            }
+        if (size == null) {
+            pageable =
+                    PageRequest.of(pager.getIndex(), pager.getPageSize(), sort);
+            do {
+                page = getPageBooking(state, userId, pageable);
+                try {
+                    bookingShortDto.addAll(page.stream()
+                            .map(bookingMapper::toBookingShortDto)
+                            .collect(Collectors.toList()));
+                    pageable = pageable.next();
+                } catch (NullPointerException e) {
+                    throw new ValidationException("Unknown state: UNSUPPORTED_STATUS");
+                }
 
-            case PAST: {
-                bookingShortDto = bookingRepository.findAllByBookerIdAndEndBeforeOrderByStartDesc(userId, now)
-                        .stream()
-                        .map(bookingMapper::toBookingShortDto)
-                        .collect(Collectors.toList());
-                break;
-            }
+            } while (page.hasNext());
 
-            case FUTURE: {
-                bookingShortDto = bookingRepository.findAllByBookerIdAndStartAfterOrderByStartDesc(userId, now)
-                        .stream()
-                        .map(bookingMapper::toBookingShortDto)
-                        .collect(Collectors.toList());
-                break;
-            }
+        } else {
 
-            case REJECTED: {
-                bookingShortDto = bookingRepository.findAllByBookerIdAndStatus(userId, BookingStatus.REJECTED)
-                        .stream()
+            for (int i = pager.getIndex(); i < pager.getTotalPages(); i++) {
+                pageable =
+                        PageRequest.of(i, pager.getPageSize(), sort);
+                page = getPageBooking(state, userId, pageable);
+                bookingShortDto.addAll(page.stream()
                         .map(bookingMapper::toBookingShortDto)
-                        .collect(Collectors.toList());
-                break;
+                        .collect(Collectors.toList()));
+                if (!page.hasNext()) {
+                    break;
+                }
             }
-
-            case WAITING: {
-                bookingShortDto = bookingRepository.findAllByBookerIdAndStatus(userId, BookingStatus.WAITING)
-                        .stream()
-                        .map(bookingMapper::toBookingShortDto)
-                        .collect(Collectors.toList());
-                break;
-            }
-
-            case UNKNOWN: {
-                throw new ValidationException("Unknown state: UNSUPPORTED_STATUS");
-            }
+            bookingShortDto = bookingShortDto.stream()
+                    .limit(size)
+                    .collect(Collectors.toList());
         }
         return bookingShortDto;
     }
 
+    private Page<Booking> getPageBooking(String bookingState, Long userId, Pageable pageable) {
+        final LocalDateTime now = LocalDateTime.now();
+        Page<Booking> page = null;
+
+        switch (bookingState) {
+            case "ALL": {
+                page = bookingRepository.findAllBookingsByBooker(userId, pageable);
+                break;
+            }
+
+            case "CURRENT": { //findAllBookingsForBookerWithStartAndEndTime
+                page = bookingRepository.findByBookerIdAndStartIsBeforeAndEndIsAfter(userId, now, now, pageable);
+                break;
+            }
+
+            case "PAST": { //findAllByBookerIdAndEndBeforeOrderByStartDesc
+                page = bookingRepository.findByBookerIdAndEndIsBefore(userId, now, pageable);
+                break;
+            }
+
+            case "FUTURE": { //findAllByBookerIdAndStartAfterOrderByStartDesc
+                page = bookingRepository.findByBookerIdAndStartIsAfter(userId, now, pageable);
+                break;
+            }
+
+            case "REJECTED": { //findAllByBookerIdAndStatus
+                page = bookingRepository.findByBookerIdAndStatus(userId, BookingStatus.REJECTED, pageable);
+                break;
+            }
+
+            case "WAITING": { //findAllByBookerIdAndStatus
+                page = bookingRepository.findByBookerIdAndStatus(userId, BookingStatus.WAITING, pageable);
+                break;
+            }
+
+            case "UNKNOWN": {
+                throw new ValidationException("Unknown state: UNSUPPORTED_STATUS");
+            }
+        }
+
+        return page;
+    }
+
     @Override
-    public List<BookingShortDto> getByOwnerId(Long userId, String state) {
+    public List<BookingShortDto> getByOwnerId(Long userId, String state, Integer from, Integer size) {
         userService.findUserById(userId);
         BookingState bookingState = BookingState.UNKNOWN;
         final LocalDateTime now = LocalDateTime.now();
@@ -171,59 +203,81 @@ public class BookingServiceImpl implements BookingService {
             }
         }
 
+        Pageable pageable;
+        Sort sort = Sort.by(Sort.Direction.DESC, "start");
+        Page<Booking> page;
+        Pagination pager = new Pagination(from, size);
+
+        if (size == null) {
+            pageable =
+                    PageRequest.of(pager.getIndex(), pager.getPageSize(), sort);
+            do {
+                page = getPageBookingByOwner(state, userId, pageable);
+                try {
+                    bookingShortDto.addAll(page.stream()
+                            .map(bookingMapper::toBookingShortDto)
+                            .collect(Collectors.toList()));
+                    pageable = pageable.next();
+                } catch (NullPointerException e) {
+                    throw new ValidationException("Unknown state: UNSUPPORTED_STATUS");
+                }
+            } while (page.hasNext());
+
+        } else {
+            for (int i = pager.getIndex(); i < pager.getTotalPages(); i++) {
+                pageable =
+                        PageRequest.of(i, pager.getPageSize(), sort);
+                page = getPageBookingByOwner(state, userId, pageable);
+                bookingShortDto.addAll(page.stream()
+                        .map(bookingMapper::toBookingShortDto)
+                        .collect(Collectors.toList()));
+                if (!page.hasNext()) {
+                    break;
+                }
+            }
+            bookingShortDto = bookingShortDto.stream().limit(size).collect(Collectors.toList());
+        }
+        return bookingShortDto;
+    }
+
+    private Page<Booking> getPageBookingByOwner(String bookingState, Long ownerId, Pageable pageable) {
+        LocalDateTime now = LocalDateTime.now();
+        Page<Booking> page = null;
         switch (bookingState) {
-            case ALL: {
-                bookingShortDto = bookingRepository.findAllByOwnerId(userId)
-                        .stream()
-                        .map(bookingMapper::toBookingShortDto)
-                        .collect(Collectors.toList());
+            case "ALL": {
+                page = bookingRepository.findByItemOwnerId(ownerId, pageable);
                 break;
             }
-            case CURRENT: {
-                bookingShortDto = bookingRepository.findAllByOwnerIdAndStartBeforeAndEndAfter(userId, now)
-                        .stream()
-                        .map(bookingMapper::toBookingShortDto)
-                        .collect(Collectors.toList());
+            case "CURRENT": {
+                page = bookingRepository.findByItemOwnerIdAndStartIsBeforeAndEndIsAfter(ownerId, now, pageable);
                 break;
             }
 
-            case FUTURE: {
-                bookingShortDto = bookingRepository.findAllByOwnerIdAndStartAfter(userId, now)
-                        .stream()
-                        .map(bookingMapper::toBookingShortDto)
-                        .collect(Collectors.toList());
+            case "FUTURE": {
+                page = bookingRepository.findByItemOwnerIdAndStartIsAfter(ownerId, now, pageable);
                 break;
             }
 
-            case WAITING: {
-                bookingShortDto = bookingRepository.findAllByOwnerIdAndStatus(userId, BookingStatus.WAITING)
-                        .stream()
-                        .map(bookingMapper::toBookingShortDto)
-                        .collect(Collectors.toList());
+            case "WAITING": {
+                page = bookingRepository.findByItemOwnerIdAndStatus(ownerId, BookingStatus.WAITING, pageable);
                 break;
             }
 
-            case REJECTED: {
-                bookingShortDto = bookingRepository.findAllByOwnerIdAndStatus(userId, BookingStatus.REJECTED)
-                        .stream()
-                        .map(bookingMapper::toBookingShortDto)
-                        .collect(Collectors.toList());
+            case "REJECTED": {
+                page = bookingRepository.findByItemOwnerIdAndStatus(ownerId, BookingStatus.REJECTED, pageable);
                 break;
             }
 
-            case PAST: {
-                bookingShortDto = bookingRepository.findAllByOwnerIdAndEndBefore(userId, now)
-                        .stream()
-                        .map(bookingMapper::toBookingShortDto)
-                        .collect(Collectors.toList());
+            case "PAST": {
+                page = bookingRepository.findByItemOwnerIdAndEndIsBefore(ownerId, now, pageable);
                 break;
             }
 
-            case UNKNOWN: {
+            case "UNKNOWN": {
                 throw new ValidationException("Unknown state: UNSUPPORTED_STATUS");
             }
         }
-        return bookingShortDto;
+        return page;
     }
 
     private Booking getBookingIfExists(Long id) {

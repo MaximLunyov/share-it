@@ -8,6 +8,43 @@ import javax.validation.constraints.NotNull;
 @Table(name = "items")
 public class Item {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private long id;
+
+    @NotBlank
+    @Column(name = "name")
+    private String name;
+
+    @NotBlank
+    @NotNull
+    @Column(name = "description")
+    private String description;
+
+    @Column(name = "available")
+    @NotNull
+    private Boolean available;
+
+    @Column(name = "user_id")
+    private long userId;
+
+    @Column(name = "request_id")
+    private Long requestId;
+
+    public Item(long id, String name, String description, Boolean available, long userId, Long requestId) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+        this.available = available;
+        this.userId = userId;
+        this.requestId = requestId;
+    }
+
+    public Item() {
+
+    }
+
     public long getId() {
         return id;
     }
@@ -48,6 +85,14 @@ public class Item {
         this.userId = userId;
     }
 
+    public Long getRequestId() {
+        return requestId;
+    }
+
+    public void setRequestId(Long requestId) {
+        this.requestId = requestId;
+    }
+
     @Override
     public String toString() {
         return "Item{" +
@@ -59,25 +104,7 @@ public class Item {
                 '}';
     }
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private long id;
 
-    @NotBlank
-    @Column(name = "name")
-    private String name;
 
-    @NotBlank
-    @NotNull
-    @Column(name = "description")
-    private String description;
-
-    @Column(name = "available")
-    @NotNull
-    private Boolean available;
-
-    @Column(name = "user_id")
-    private long userId;
 
 }
