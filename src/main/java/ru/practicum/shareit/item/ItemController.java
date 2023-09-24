@@ -27,9 +27,11 @@ public class ItemController {
     }
 
     @GetMapping
-    public List<ItemDto> findAllItems(@RequestHeader("x-sharer-user-id") long sharerUserId) {
-        log.info("Получен запрос на получение списка предметов пользователя " + sharerUserId);
-        return itemService.findAllItems(sharerUserId);
+    public List<ItemDto> findAllItems(@RequestHeader("x-sharer-user-id") long sharerUserId,
+                                      @RequestParam(defaultValue = "0") Integer from,
+                                      @RequestParam(required = false) Integer size) {
+        log.info("Получен запрос на получение списка предметов владельца " + sharerUserId);
+        return itemService.getItemsByOwner(sharerUserId, from, size);
     }
 
     @GetMapping("/{id}")
@@ -42,8 +44,10 @@ public class ItemController {
     }
 
     @GetMapping("/search")
-    public List<Item> searchByText(@RequestParam String text, @RequestHeader("x-sharer-user-id") long sharerUserId) {
-        return itemService.searchByText(text, sharerUserId);
+    public List<Item> searchByText(@RequestParam String text,
+                                   @RequestParam(defaultValue = "0") Integer from,
+                                   @RequestParam(required = false) Integer size) {
+        return itemService.searchByText(text, from, size);
     }
 
     @PostMapping
@@ -62,11 +66,11 @@ public class ItemController {
         return itemService.updateItem(id, itemDto, sharerUserId);
     }
 
-    @DeleteMapping("/{id}")
+    /*@DeleteMapping("/{id}")
     public void deleteItem(@PathVariable long id, @RequestHeader("x-sharer-user-id") long sharerUserId) {
         log.info("Получен запрос на удаление пользователя c id: " + id);
         itemService.deleteItem(id, sharerUserId);
-    }
+    }*/
 
     @PostMapping("/{itemId}/comment")
     public CommentDto addComment(@RequestHeader(name = "X-Sharer-User-Id") Long sharerUserId,
