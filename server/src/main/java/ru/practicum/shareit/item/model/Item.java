@@ -1,8 +1,6 @@
 package ru.practicum.shareit.item.model;
 
 import javax.persistence.*;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 
 @Entity
 @Table(name = "items")
@@ -17,13 +15,42 @@ public class Item {
     @Column(name = "name")
     private String name;
 
-    @NotBlank
+
+    @Column(name = "available")
     @NotNull
+    private Boolean available;
+
+    @Column(name = "user_id")
+    private long userId;
+
+    @Column(name = "request_id")
+    private Long requestId;
+
+    public Item(long id, String name, String description, Boolean available, long userId, Long requestId) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+        this.available = available;
+        this.userId = userId;
+        this.requestId = requestId;
+    }
+
+    public Item() {
+
+    }
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private long id;
+
+    @Column(name = "name")
+    private String name;
+
     @Column(name = "description")
     private String description;
 
     @Column(name = "available")
-    @NotNull
     private Boolean available;
 
     @Column(name = "user_id")
