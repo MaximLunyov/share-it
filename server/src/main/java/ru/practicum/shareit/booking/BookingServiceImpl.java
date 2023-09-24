@@ -192,7 +192,6 @@ public class BookingServiceImpl implements BookingService {
     public List<BookingShortDto> getByOwnerId(Long userId, String state, Integer from, Integer size) {
         userService.findUserById(userId);
         BookingState bookingState = BookingState.UNKNOWN;
-        final LocalDateTime now = LocalDateTime.now();
         List<BookingShortDto> bookingShortDto = new ArrayList<>();
 
         if (!state.isBlank()) {

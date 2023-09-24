@@ -46,15 +46,15 @@ public class ItemServiceImpl implements ItemService {
     @Transactional
     @Override
     public Item createItem(ItemDto itemDto, long sharerUserId) {
-        if (itemDto.getName() == null || itemDto.getDescription() == null
+        /*if (itemDto.getName() == null || itemDto.getDescription() == null
                 || itemDto.getAvailable() == null) {
             throw new ValidationException();
-        }
-        if (itemDto.getName().isBlank() || itemDto.getDescription().isBlank()
+        }*/
+        /*if (itemDto.getName().isBlank() || itemDto.getDescription().isBlank()
                 || itemDto.getAvailable() == null) {
             throw new ValidationException();
-        }
-        log.info(String.valueOf(itemDto));
+        }*/
+
         if (userService.findUserById(sharerUserId) == null) {
             throw new NoSuchElementException();
         }
