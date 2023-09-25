@@ -54,4 +54,6 @@ public class BookingClient extends BaseClient {
         String path = "/" + bookingId + "?approved=" + approved;
         return patch(path, userId, null, null);
     }
+
+
 }

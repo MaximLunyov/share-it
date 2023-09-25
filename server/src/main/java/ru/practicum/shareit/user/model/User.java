@@ -1,8 +1,6 @@
 package ru.practicum.shareit.user.model;
 
 import javax.persistence.*;
-import javax.validation.constraints.Email;
-import javax.validation.constraints.NotBlank;
 
 @Entity
 @Table(name = "users")
@@ -24,11 +22,9 @@ public class User {
     private long id;
 
     @Column(name = "name")
-    @NotBlank(message = "Передано пустое имя")
     private String name;
 
     @Column(name = "email", nullable = false, length = 256, unique = true)
-    @Email(message = "Некорректно указана электронная почта")
     private String email;
 
     public long getId() {

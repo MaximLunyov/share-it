@@ -4,7 +4,6 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.*;
-import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
 @Entity
@@ -66,7 +65,6 @@ public class Comment {
     @Column
     private Long id;
 
-    @NotBlank
     private String text;
 
     @ManyToOne(fetch = FetchType.LAZY)

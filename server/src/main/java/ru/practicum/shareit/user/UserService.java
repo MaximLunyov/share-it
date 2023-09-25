@@ -9,7 +9,6 @@ import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.dto.UserMapper;
 import ru.practicum.shareit.user.model.User;
 
-import javax.validation.ValidationException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -39,12 +38,6 @@ public class UserService {
 
     @Transactional
     public User createUser(UserDto userDto) {
-        if (userDto.getEmail() == null || userDto.getName() == null) {
-            throw new ValidationException();
-        }
-        if (userDto.getEmail().isBlank() && userDto.getName().isBlank()) {
-            throw new ValidationException();
-        }
         return userRepository.save(UserMapper.toUser(userDto));
     }
 
@@ -52,7 +45,6 @@ public class UserService {
     public User updateUser(long id, UserDto userDto) {
         User first = UserMapper.toUser(userDto);
         User second = findUserById(id);
-
 
         if (id != second.getId()) {
             throw new NoSuchElementException();

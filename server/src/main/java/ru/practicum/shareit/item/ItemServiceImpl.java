@@ -14,6 +14,7 @@ import ru.practicum.shareit.booking.BookingRepository;
 import ru.practicum.shareit.booking.BookingStatus;
 import ru.practicum.shareit.booking.dto.BookingMapper;
 import ru.practicum.shareit.booking.dto.BookingShortDto;
+import ru.practicum.shareit.error.model.ConflictException;
 import ru.practicum.shareit.item.comment.Comment;
 import ru.practicum.shareit.item.comment.CommentDto;
 import ru.practicum.shareit.item.comment.CommentMapper;
@@ -23,7 +24,6 @@ import ru.practicum.shareit.item.dto.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserService;
 
-import javax.validation.ValidationException;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -46,18 +46,8 @@ public class ItemServiceImpl implements ItemService {
     @Transactional
     @Override
     public Item createItem(ItemDto itemDto, long sharerUserId) {
-        /*if (itemDto.getName() == null || itemDto.getDescription() == null
-                || itemDto.getAvailable() == null) {
-            throw new ValidationException();
-        }*/
-        /*if (itemDto.getName().isBlank() || itemDto.getDescription().isBlank()
-                || itemDto.getAvailable() == null) {
-            throw new ValidationException();
-        }*/
+        checkUserExists(sharerUserId);
 
-        if (userService.findUserById(sharerUserId) == null) {
-            throw new NoSuchElementException();
-        }
         Item item = ItemMapper.toItem(itemDto);
         item.setUserId(userService.findUserById(sharerUserId).getId());
 
@@ -213,17 +203,8 @@ public class ItemServiceImpl implements ItemService {
                 .collect(toList());
     }
 
-    /*@Transactional
-    @Override
-    public void deleteItem(long id, long sharerUserId) {
-
-    }*/
-
     @Override
     public List<Item> searchByText(String text, Integer from, Integer size) {
-        if (text.isBlank()) {
-            return new ArrayList<>();
-        }
         List<Item> items = new ArrayList<>();
 
         text = text.toLowerCase();
@@ -335,7 +316,7 @@ public class ItemServiceImpl implements ItemService {
                 .collect(toList());
 
         if (bookingList.isEmpty()) {
-            throw new ValidationException();
+            throw new ConflictException(""); //
         }
     }
 }

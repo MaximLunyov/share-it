@@ -2,14 +2,17 @@ package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 
 import javax.validation.Valid;
+import javax.validation.ValidationException;
 import javax.validation.constraints.PositiveOrZero;
 
 @Controller
@@ -33,6 +36,9 @@ public class ItemController {
     @PostMapping
     public ResponseEntity<Object> create(@RequestHeader(USER_ID) Long userId,
                                          @RequestBody @Valid ItemDto itemDto) {
+        if (itemDto.getAvailable() == null) {
+            throw new ValidationException();
+        }
         log.info("Создание вещи {}, userId={}", itemDto, userId);
         return itemClient.create(userId, itemDto);
     }
@@ -40,6 +46,9 @@ public class ItemController {
     @GetMapping("/{itemId}")
     public ResponseEntity<Object> getItemById(@RequestHeader(USER_ID) Long userId,
                                               @PathVariable Long itemId) {
+        if (userId <= 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
         log.info("Запрос вещи {}, userId={}", itemId, userId);
         return itemClient.getItemById(userId, itemId);
     }
@@ -50,12 +59,6 @@ public class ItemController {
                                          @RequestHeader(USER_ID) Long userId) {
         log.info("Получен PATCH-запрос к эндпоинту: '/items' на обновление вещи с ID={}", itemId);
         return itemClient.update(itemDto, itemId, userId);
-    }
-
-    @DeleteMapping("/{itemId}")
-    public ResponseEntity<Object> delete(@PathVariable Long itemId, @RequestHeader(USER_ID) Long ownerId) {
-        log.info("Получен DELETE-запрос к эндпоинту: '/items' на удаление вещи с ID={}", itemId);
-        return itemClient.delete(itemId, ownerId);
     }
 
     @GetMapping("/search")

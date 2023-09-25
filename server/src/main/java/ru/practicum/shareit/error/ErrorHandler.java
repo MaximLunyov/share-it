@@ -5,9 +5,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import ru.practicum.shareit.error.model.ConflictException;
 import ru.practicum.shareit.error.model.ErrorResponse;
 
-import javax.validation.ValidationException;
 import java.util.NoSuchElementException;
 
     @RestControllerAdvice
@@ -15,7 +15,7 @@ import java.util.NoSuchElementException;
 
         @ExceptionHandler
         @ResponseStatus(HttpStatus.BAD_REQUEST)
-        public ErrorResponse handleBadRequest(final ValidationException e) {
+        public ErrorResponse handleBadRequest(final ConflictException e) {
             return new ErrorResponse(e.getMessage());
         }
 

@@ -12,11 +12,11 @@ import ru.practicum.shareit.Pagination;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.BookingMapper;
 import ru.practicum.shareit.booking.dto.BookingShortDto;
+import ru.practicum.shareit.error.model.ConflictException;
 import ru.practicum.shareit.item.ItemService;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserService;
 
-import javax.validation.ValidationException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +39,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public BookingDto createBooking(Long bookerId, BookingDto bookingDto) {
         checkItemIsAvailable(bookingDto.getItemId(), bookerId);
-        checkBookingTime(bookingDto);
+
         if (itemService.findItemById(bookingDto.getItemId(), bookerId).getUserId() == bookerId) {
             throw new NoSuchElementException("Владелец вещи не может бронировать свою вещь");
         }
@@ -53,17 +53,15 @@ public class BookingServiceImpl implements BookingService {
 
     @Transactional
     @Override
-    public BookingDto updateBooking(Long ownerId, Long bookingId, Boolean approved) {
-        if (approved == null) {
-            throw new ValidationException();
-        }
+    public BookingDto updateBooking(Long ownerId, Long bookingId, Boolean approved) { //
+
         Booking booking = getBookingIfExists(bookingId);
 
         if (booking.getStatus().equals(BookingStatus.APPROVED) && approved.equals(true)) {
-            throw new ValidationException(true + " - статус уже была присвоен");
+            throw new ConflictException(true + " - статус уже была присвоен");
         }
         if (booking.getStatus().equals(BookingStatus.REJECTED) && approved.equals(false)) {
-            throw new ValidationException(false + " - статус уже был присвоен");
+            throw new ConflictException(false + " - статус уже был присвоен");
         }
 
         if (booking.getItem().getUserId() != ownerId) {
@@ -120,7 +118,7 @@ public class BookingServiceImpl implements BookingService {
                             .collect(Collectors.toList()));
                     pageable = pageable.next();
                 } catch (NullPointerException e) {
-                    throw new ValidationException("Unknown state: UNSUPPORTED_STATUS");
+                    throw new ConflictException("Unknown state: UNSUPPORTED_STATUS");
                 }
 
             } while (page.hasNext());
@@ -181,7 +179,7 @@ public class BookingServiceImpl implements BookingService {
             }
 
             case "UNKNOWN": {
-                throw new ValidationException("Unknown state: UNSUPPORTED_STATUS");
+                throw new ConflictException("Unknown state: UNSUPPORTED_STATUS");
             }
         }
 
@@ -218,7 +216,7 @@ public class BookingServiceImpl implements BookingService {
                             .collect(Collectors.toList()));
                     pageable = pageable.next();
                 } catch (NullPointerException e) {
-                    throw new ValidationException("Unknown state: UNSUPPORTED_STATUS");
+                    throw new ConflictException("Unknown state: UNSUPPORTED_STATUS");
                 }
             } while (page.hasNext());
 
@@ -273,7 +271,7 @@ public class BookingServiceImpl implements BookingService {
             }
 
             case "UNKNOWN": {
-                throw new ValidationException("Unknown state: UNSUPPORTED_STATUS");
+                throw new ConflictException("Unknown state: UNSUPPORTED_STATUS");
             }
         }
         return page;
@@ -287,27 +285,15 @@ public class BookingServiceImpl implements BookingService {
         return bookingOptional.get();
     }
 
-    private void checkBookingTime(BookingDto bookingDto) {
-        if (bookingDto.getStart() == null || bookingDto.getEnd() == null) {
-            throw new ValidationException();
-        }
-        if (bookingDto.getStart().equals(bookingDto.getEnd())) {
-            throw new ValidationException();
-        }
-        if (bookingDto.getStart().isAfter(bookingDto.getEnd())) {
-            throw new ValidationException();
-        }
-    }
-
     private void checkItemIsAvailable(long itemId, long userId) {
         Item item;
         try {
             item = itemService.findItemById(itemId, userId);
             if (!item.getAvailable()) {
-                throw new ValidationException();
+                throw new ConflictException("");
             }
         } catch (NullPointerException e) {
-            throw new ValidationException();
+            throw new ConflictException("");
         }
     }
 }

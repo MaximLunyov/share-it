@@ -6,7 +6,6 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.BookingShortDto;
 
-import javax.validation.Valid;
 import java.util.List;
 
 @Slf4j
@@ -22,7 +21,7 @@ public class BookingController {
 
     @PostMapping
     public BookingDto add(@RequestHeader("X-Sharer-User-Id") Long bookerId,
-                          @Valid @RequestBody BookingDto bookingDto) {
+                          @RequestBody BookingDto bookingDto) {
         log.info(String.format("Получен запрос на бронирование: '%s' пользователем %s", bookingDto, bookerId));
         return bookingService.createBooking(bookerId, bookingDto);
     }

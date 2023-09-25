@@ -10,6 +10,7 @@ import ru.practicum.shareit.booking.dto.BookItemRequestDto;
 import ru.practicum.shareit.booking.dto.BookingState;
 
 import javax.validation.Valid;
+import javax.validation.ValidationException;
 import javax.validation.constraints.PositiveOrZero;
 
 @Controller
@@ -28,7 +29,7 @@ public class BookingController {
                                               Integer from,
                                               @RequestParam(required = false) Integer size) {
         BookingState state = BookingState.from(stateParam)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown state: " + stateParam));
+                .orElseThrow(() -> new ValidationException("Unknown state: " + stateParam));
         log.info("Get booking with state {}, userId={}, from={}, size={}", stateParam, userId, from, size);
         return bookingClient.getBookings(userId, state, from, size);
     }
@@ -40,7 +41,7 @@ public class BookingController {
                                                    @PositiveOrZero @RequestParam(defaultValue = "0") Integer from,
                                                    @RequestParam(required = false) Integer size) {
         BookingState state = BookingState.from(stateParam)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown state: " + stateParam));
+                .orElseThrow(() -> new ValidationException("Unknown state: " + stateParam));
         log.info("Получен GET-запрос к эндпоинту: '/bookings/owner' на получение " +
                 "списка всех бронирований вещей пользователя с ID={} с параметром STATE={}", userId, state);
         return bookingClient.getBookingsOwner(userId, state, from, size);
@@ -49,6 +50,16 @@ public class BookingController {
     @PostMapping
     public ResponseEntity<Object> create(@RequestHeader(USER_ID) Long userId,
                                          @RequestBody @Valid BookItemRequestDto requestDto) {
+        if (requestDto.getStart() == null || requestDto.getEnd() == null) {
+            throw new ValidationException();
+        }
+        if (requestDto.getStart().equals(requestDto.getEnd())) {
+            throw new ValidationException();
+        }
+        if (requestDto.getStart().isAfter(requestDto.getEnd())) {
+            throw new ValidationException();
+        }
+
         log.info("Creating booking {}, userId={}", requestDto, userId);
         return bookingClient.create(userId, requestDto);
     }
@@ -64,6 +75,9 @@ public class BookingController {
     @PatchMapping("/{bookingId}")
     public ResponseEntity<Object> update(@PathVariable Long bookingId,
                                          @RequestHeader(USER_ID) Long userId, @RequestParam Boolean approved) {
+        if (approved == null) {
+            throw new ValidationException();
+        }
         log.info("Получен PATCH-запрос к эндпоинту: '/bookings' на обновление статуса бронирования с ID={}",
                 bookingId);
         return bookingClient.update(bookingId, userId, approved);

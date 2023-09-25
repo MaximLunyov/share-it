@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 
-import javax.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -23,7 +22,7 @@ public class ItemRequestController {
 
     @ResponseBody
     @PostMapping
-    public ItemRequestDto create(@Valid @RequestBody ItemRequestDto itemRequestDto,
+    public ItemRequestDto create(@RequestBody ItemRequestDto itemRequestDto,
                                  @RequestHeader("X-Sharer-User-Id") Long requestorId) {
         log.info("Получен POST-запрос к эндпоинту: '/requests' " +
                 "на создание запроса вещи от пользователя с ID={}", requestorId);

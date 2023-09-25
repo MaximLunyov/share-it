@@ -1,8 +1,7 @@
 package ru.practicum.shareit;
 
 import lombok.Getter;
-
-import javax.validation.ValidationException;
+import ru.practicum.shareit.error.model.ConflictException;
 
 @Getter
 public class Pagination {
@@ -14,10 +13,10 @@ public class Pagination {
     public Pagination(Integer from, Integer size) {
         if (size != null) {
             if ((from < 0) || (size < 0)) {
-                throw new ValidationException("Значение не может быть меньше нуля!");
+                throw new ConflictException("Значение не может быть меньше нуля!");
             }
             if (size.equals(0)) {
-                throw new ValidationException("Значение должно быть больше нуля!");
+                throw new ConflictException("Значение должно быть больше нуля!");
             }
         }
         pageSize = from;
